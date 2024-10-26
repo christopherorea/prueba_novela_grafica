@@ -51,9 +51,14 @@
 
     // Función para cargar el JSON
     async function cargarJSON() {
-        const response = await fetch('conversacion.json'); // Cambia el nombre del archivo si es necesario
-        data = await response.json();
-        mostrarSiguiente(); // Comienza a mostrar y leer el contenido
+        try {
+            const response = await fetch('conversacion.json'); // Cambia el nombre del archivo si es necesario
+            data = await response.json();
+            mostrarSiguiente(); // Comienza a mostrar y leer el contenido
+        } catch (error) {
+            console.error("Error al cargar JSON:", error);
+            document.getElementById('texto').innerText = "No se pudo cargar el archivo JSON.";
+        }
     }
 
     // Función para mostrar el siguiente mensaje
@@ -135,6 +140,7 @@
 
             cargarJSON(); // Comienza a cargar el JSON y muestra el contenido
         } else {
+            console.log("Esperando que se carguen las voces...");
             window.speechSynthesis.onvoiceschanged = () => {
                 voices = window.speechSynthesis.getVoices();
                 cargarVoces(); // Llama nuevamente a cargar las voces
