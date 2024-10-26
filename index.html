@@ -46,6 +46,8 @@
     let data = []; // Aquí cargaremos el JSON
     let index = 0;
     let voices = []; // Array para almacenar las voces disponibles
+    let voiceYo = null; // Voz para "yo" y "contexto"
+    let voiceOtro = null; // Voz para "otro"
 
     // Función para cargar el JSON
     async function cargarJSON() {
@@ -63,7 +65,7 @@
         const emocionElemento = document.getElementById('emocion');
         const imagenElemento = document.getElementById('imagen');
 
-        // Actualiza el texto y emoción
+        // Actualiza el texto y emoción en pantalla
         textoElemento.innerText = item.texto;
         emocionElemento.innerText = `Emoción: ${item.emocion[0].label} (Score: ${item.emocion[0].score.toFixed(2)})`;
 
@@ -83,44 +85,59 @@
         }
 
         // Usa la API de síntesis de voz para leer el texto
-        leerTexto(item.texto);
-
-        // Avanza al siguiente elemento al finalizar la lectura
-        index = (index + 1) % data.length;
+        leerTexto(item.texto, item.tipo);
     }
 
-    // Función para leer el texto en voz alta con una voz aleatoria
-    function leerTexto(texto) {
+    // Función para leer el texto en voz alta con una voz asignada según el tipo
+    function leerTexto(texto, tipo) {
         const utterance = new SpeechSynthesisUtterance(texto);
-        utterance.lang = 'es-ES'; // Español de España
+        utterance.lang = 'es-ES'; // Idioma en español
 
-        // Filtra voces en español y elige una aleatoriamente
-        const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
-        if (spanishVoices.length > 0) {
-            utterance.voice = spanishVoices[Math.floor(Math.random() * spanishVoices.length)];
-        } else {
-            // Si no hay voces en español, elige cualquier otra voz aleatoria
-            utterance.voice = voices[Math.floor(Math.random() * voices.length)];
+        // Asigna la voz según el tipo
+        if (tipo === "yo" || tipo === "contexto") {
+            utterance.voice = voiceYo;
+        } else if (tipo === "otro") {
+            utterance.voice = voiceOtro;
         }
 
-        // Cuando termine de leer, muestra el siguiente mensaje
+        // Cuando termine de leer, muestra el siguiente mensaje y avanza el índice
         utterance.onend = () => {
-            mostrarSiguiente();
+            index = (index + 1) % data.length;
+            mostrarSiguiente(); // Llama a mostrarSiguiente solo cuando termina de leer
         };
 
         // Inicia la lectura
         window.speechSynthesis.speak(utterance);
     }
 
-    // Función para cargar las voces y comenzar la lectura
+    // Función para cargar las voces y asignar voces específicas
     function cargarVoces() {
         voices = window.speechSynthesis.getVoices();
+        
         if (voices.length !== 0) {
+            // Filtra voces en español
+            const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
+
+            // Asigna una voz aleatoria en español para "yo" y "contexto"
+            if (spanishVoices.length > 0) {
+                voiceYo = spanishVoices[Math.floor(Math.random() * spanishVoices.length)];
+                // Elige una voz diferente en español para "otro"
+                do {
+                    voiceOtro = spanishVoices[Math.floor(Math.random() * spanishVoices.length)];
+                } while (voiceOtro === voiceYo);
+            } else {
+                // Si no hay voces en español, elige voces de cualquier idioma
+                voiceYo = voices[Math.floor(Math.random() * voices.length)];
+                do {
+                    voiceOtro = voices[Math.floor(Math.random() * voices.length)];
+                } while (voiceOtro === voiceYo);
+            }
+
             cargarJSON(); // Comienza a cargar el JSON y muestra el contenido
         } else {
             window.speechSynthesis.onvoiceschanged = () => {
                 voices = window.speechSynthesis.getVoices();
-                cargarJSON();
+                cargarVoces(); // Llama nuevamente a cargar las voces
             };
         }
     }
