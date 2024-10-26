@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novela Gráfica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+        }
+        #texto {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 600px;
+        }
+        #emocion {
+            font-style: italic;
+            color: #555;
+        }
+        #imagen {
+            width: 300px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="texto">Cargando...</div>
+    <div id="emocion">Emoción: </div>
+    <img id="imagen" src="" alt="Imagen">
+</div>
+
+<script>
+    let data = []; // Aquí cargaremos el JSON
+    let index = 0;
+    let voices = []; // Array para almacenar las voces disponibles
+
+    // Función para cargar el JSON
+    async function cargarJSON() {
+        const response = await fetch('conversacion.json'); // Cambia el nombre del archivo si es necesario
+        data = await response.json();
+        mostrarSiguiente(); // Comienza a mostrar y leer el contenido
+    }
+
+    // Función para mostrar el siguiente mensaje
+    function mostrarSiguiente() {
+        if (data.length === 0) return;
+
+        const item = data[index];
+        const textoElemento = document.getElementById('texto');
+        const emocionElemento = document.getElementById('emocion');
+        const imagenElemento = document.getElementById('imagen');
+
+        // Actualiza el texto y emoción
+        textoElemento.innerText = item.texto;
+        emocionElemento.innerText = `Emoción: ${item.emocion[0].label} (Score: ${item.emocion[0].score.toFixed(2)})`;
+
+        // Selecciona la imagen según el tipo
+        switch (item.tipo) {
+            case "contexto":
+                imagenElemento.src = "contexto.jpg";
+                break;
+            case "otro":
+                imagenElemento.src = "otro.jpg";
+                break;
+            case "yo":
+                imagenElemento.src = "prota.jpg";
+                break;
+            default:
+                imagenElemento.src = ""; // Imagen por defecto si el tipo no coincide
+        }
+
+        // Usa la API de síntesis de voz para leer el texto
+        leerTexto(item.texto);
+
+        // Avanza al siguiente elemento al finalizar la lectura
+        index = (index + 1) % data.length;
+    }
+
+    // Función para leer el texto en voz alta con una voz aleatoria
+    function leerTexto(texto) {
+        const utterance = new SpeechSynthesisUtterance(texto);
+        utterance.lang = 'es-ES'; // Español de España
+
+        // Filtra voces en español y elige una aleatoriamente
+        const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
+        if (spanishVoices.length > 0) {
+            utterance.voice = spanishVoices[Math.floor(Math.random() * spanishVoices.length)];
+        } else {
+            // Si no hay voces en español, elige cualquier otra voz aleatoria
+            utterance.voice = voices[Math.floor(Math.random() * voices.length)];
+        }
+
+        // Cuando termine de leer, muestra el siguiente mensaje
+        utterance.onend = () => {
+            mostrarSiguiente();
+        };
+
+        // Inicia la lectura
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // Función para cargar las voces y comenzar la lectura
+    function cargarVoces() {
+        voices = window.speechSynthesis.getVoices();
+        if (voices.length !== 0) {
+            cargarJSON(); // Comienza a cargar el JSON y muestra el contenido
+        } else {
+            window.speechSynthesis.onvoiceschanged = () => {
+                voices = window.speechSynthesis.getVoices();
+                cargarJSON();
+            };
+        }
+    }
+
+    // Inicia la carga de voces y del JSON al cargar la página
+    window.onload = cargarVoces;
+</script>
+
+</body>
+</html>
